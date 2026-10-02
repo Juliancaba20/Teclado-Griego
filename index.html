@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teclado griego</title>
+<meta name="description" content="Teclado flotante para escribir letras griegas en resúmenes de medicina. Gratis para Windows, Mac y Linux.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>α</text></svg>">
+<style>
+  :root {
+    --fondo: #f3f6f8;
+    --tinta: #14212b;
+    --suave: #52626f;
+    --linea: #d3dde4;
+    --tarjeta: #ffffff;
+    --acento: #0b6e8a;
+    --acento-texto: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #10181e;
+      --tinta: #e6eef3;
+      --suave: #9aabb8;
+      --linea: #26343e;
+      --tarjeta: #17222a;
+      --acento: #4fb3d1;
+      --acento-texto: #0a1318;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--fondo); color: var(--tinta); }
+  body {
+    margin: 0;
+    font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: max(2rem, env(safe-area-inset-top)) 1.25rem max(2rem, env(safe-area-inset-bottom));
+  }
+  main { max-width: 34rem; margin: 0 auto; }
+  .letras {
+    font-size: clamp(2.4rem, 11vw, 3.6rem);
+    letter-spacing: .18em;
+    color: var(--acento);
+    margin: 3rem 0 .5rem;
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+  h1 { font-size: 1.9rem; margin: 0 0 .75rem; line-height: 1.15; }
+  .intro { color: var(--suave); margin: 0 0 2rem; }
+  .descargas { display: grid; gap: .75rem; margin-bottom: 2.5rem; }
+  .descarga {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: .95rem 1.1rem;
+    background: var(--tarjeta);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    color: inherit; text-decoration: none;
+  }
+  .descarga:hover { border-color: var(--acento); }
+  .descarga:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+  .descarga b { display: block; font-size: 1.05rem; }
+  .descarga small { color: var(--suave); }
+  .descarga span.boton {
+    flex: none; padding: .45rem .9rem; border-radius: 7px;
+    border: 1px solid var(--acento); color: var(--acento); font-weight: 600;
+  }
+  .descarga.sugerido { border-color: var(--acento); }
+  .descarga.sugerido span.boton { background: var(--acento); color: var(--acento-texto); }
+  h2 { font-size: 1.15rem; margin: 0 0 .6rem; }
+  ol { padding-left: 1.2rem; margin: 0 0 2rem; }
+  li { margin-bottom: .3rem; }
+  details { border-top: 1px solid var(--linea); padding: .8rem 0; }
+  details:last-of-type { border-bottom: 1px solid var(--linea); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--suave); margin: .6rem 0 0; }
+  code { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 4px; padding: 0 .3em; font-size: .9em; }
+  footer { margin-top: 2.5rem; color: var(--suave); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <div class="letras" aria-hidden="true">α β γ Δ μ</div>
+  <h1>Teclado griego</h1>
+  <p class="intro">Un teclado flotante para escribir letras griegas en tus resúmenes. Clic en la letra y se escribe donde esté el cursor, sin copiar ni pegar. Gratis.</p>
+
+  <div class="descargas">
+    <a class="descarga" data-so="windows" data-archivo="TecladoGriego-Windows.exe" href="#">
+      <span><b>Windows</b><small>Archivo .exe, se abre con doble clic</small></span>
+      <span class="boton">Descargar</span>
+    </a>
+    <a class="descarga" data-so="mac" data-archivo="TecladoGriego-Mac.zip" href="#">
+      <span><b>Mac</b><small>Archivo .zip, para Mac con chip M1 o posterior</small></span>
+      <span class="boton">Descargar</span>
+    </a>
+    <a class="descarga" data-so="linux" data-archivo="TecladoGriego-Linux.tar.gz" href="#">
+      <span><b>Linux</b><small>Archivo .tar.gz, para escritorio con X11</small></span>
+      <span class="boton">Descargar</span>
+    </a>
+  </div>
+
+  <h2>Cómo se usa</h2>
+  <ol>
+    <li>Abra el programa: aparece una barra pequeña que queda siempre visible.</li>
+    <li>Haga clic en su documento y deje el cursor donde quiere escribir.</li>
+    <li>Haga clic en una letra del teclado. Las pestañas α, Α y ± cambian entre minúsculas, mayúsculas y símbolos.</li>
+  </ol>
+
+  <h2>La primera vez</h2>
+  <details>
+    <summary>Windows</summary>
+    <p>Puede aparecer "Windows protegió su PC". Elija <em>Más información</em> y luego <em>Ejecutar de todas formas</em>. El programa no tiene firma digital, pero no instala nada.</p>
+  </details>
+  <details>
+    <summary>Mac</summary>
+    <p>Descomprima el .zip, haga clic derecho sobre la aplicación y elija <em>Abrir</em>. Después, en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Accesibilidad, permita la aplicación para que pueda escribir en otros programas. Versión en prueba.</p>
+  </details>
+  <details>
+    <summary>Linux</summary>
+    <p>Descomprima el archivo y ejecute <code>./TecladoGriego</code>. Funciona en entornos con X11; en Wayland puede no escribir. Versión en prueba.</p>
+  </details>
+
+  <footer>Programa gratuito y sin publicidad. No recopila datos ni usa internet.</footer>
+</main>
+
+<script>
+  // Reemplazar por su usuario y repositorio de GitHub, por ejemplo "julian/teclado-griego"
+  const REPO = "TU_USUARIO/TU_REPO";
+
+  const base = "https://github.com/" + REPO + "/releases/latest/download/";
+  document.querySelectorAll("[data-archivo]").forEach(function (a) {
+    a.href = base + a.dataset.archivo;
+  });
+
+  const ua = navigator.userAgent;
+  let so = "";
+  if (!/Android|iPhone|iPad/.test(ua)) {
+    so = /Windows/.test(ua) ? "windows" : /Mac/.test(ua) ? "mac" : /Linux|X11/.test(ua) ? "linux" : "";
+  }
+  const actual = so && document.querySelector('[data-so="' + so + '"]');
+  if (actual) actual.classList.add("sugerido");
+</script>
+</body>
+</html>

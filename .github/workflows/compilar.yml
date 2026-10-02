@@ -1,0 +1,77 @@
+name: Compilar teclado griego
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            archivo: TecladoGriego-Windows.exe
+          - os: macos-latest
+            archivo: TecladoGriego-Mac.zip
+          - os: ubuntu-latest
+            archivo: TecladoGriego-Linux.tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Tk en Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip pyinstaller
+          if [ "$RUNNER_OS" != "Windows" ]; then python -m pip install pynput; fi
+
+      - name: Compilar (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --onefile --noconsole --name TecladoGriego teclado_griego.py
+          mv dist/TecladoGriego.exe TecladoGriego-Windows.exe
+
+      - name: Compilar (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pyinstaller --windowed --name TecladoGriego --collect-submodules pynput teclado_griego.py
+          ditto -c -k --keepParent dist/TecladoGriego.app TecladoGriego-Mac.zip
+
+      - name: Compilar (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          pyinstaller --onefile --noconsole --name TecladoGriego --collect-submodules pynput teclado_griego.py
+          tar -czf TecladoGriego-Linux.tar.gz -C dist TecladoGriego
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archivo }}
+          path: ${{ matrix.archivo }}
+
+  publicar:
+    needs: compilar
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: salida
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: salida/*
