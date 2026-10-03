@@ -29,10 +29,10 @@
     }
   }
   * { box-sizing: border-box; }
-  html { background: var(--fondo); color: var(--tinta); }
+  html { background: var(--fondo); color: var(--tinta); font-size: 100%; }
   body {
     margin: 0;
-    font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 1.0625rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     padding: max(2rem, env(safe-area-inset-top)) 1.25rem max(2rem, env(safe-area-inset-bottom));
   }
   main { max-width: 34rem; margin: 0 auto; }
@@ -63,8 +63,6 @@
     flex: none; padding: .45rem .9rem; border-radius: 7px;
     border: 1px solid var(--acento); color: var(--acento); font-weight: 600;
   }
-  .descarga.sugerido { border-color: var(--acento); }
-  .descarga.sugerido span.boton { background: var(--acento); color: var(--acento-texto); }
   h2 { font-size: 1.15rem; margin: 0 0 .6rem; }
   ol { padding-left: 1.2rem; margin: 0 0 2rem; }
   li { margin-bottom: .3rem; }
@@ -74,13 +72,63 @@
   details p { color: var(--suave); margin: .6rem 0 0; }
   code { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 4px; padding: 0 .3em; font-size: .9em; }
   footer { margin-top: 2.5rem; color: var(--suave); font-size: .9rem; }
+  @media (min-width: 900px) { footer { text-align: center; margin-top: 3rem; } }
+
+  /* ---------- Pantallas de PC: se aprovecha el ancho ---------- */
+  .contenido { display: block; }
+
+  /* Notebook chica / tablet horizontal */
+  @media (min-width: 900px) {
+    body { padding-left: 2.5rem; padding-right: 2.5rem; }
+    main { max-width: 64rem; }
+    .encabezado { text-align: center; max-width: 42rem; margin: 0 auto; }
+    .letras { margin-top: 2.5rem; }
+    .intro { font-size: 1.1em; margin-bottom: 2.25rem; }
+    .descargas { grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 3rem; }
+    .descarga {
+      flex-direction: column; align-items: stretch; justify-content: space-between;
+      gap: 1.1rem; padding: 1.4rem 1.3rem; text-align: left;
+      transition: border-color .15s, transform .15s;
+    }
+    .descarga:hover { transform: translateY(-2px); }
+    .descarga b { font-size: 1.2rem; margin-bottom: .2rem; }
+    .descarga span.boton { text-align: center; padding: .6rem .9rem; }
+    .contenido { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    ol { margin-bottom: 0; }
+  }
+
+  /* Monitor de escritorio */
+  @media (min-width: 1280px) {
+    html { font-size: 106.25%; }   /* 18 px */
+    main { max-width: 68rem; }
+  }
+
+  /* Monitor grande / Full HD y más */
+  @media (min-width: 1700px) {
+    html { font-size: 118.75%; }   /* 20 px */
+    main { max-width: 72rem; }
+  }
+
+  /* 2K, 4K y ultrapanorámicos */
+  @media (min-width: 2400px) {
+    html { font-size: 150%; }      /* 24 px */
+  }
+
+  /* Pantallas anchas pero bajas (notebooks): menos aire vertical */
+  @media (min-width: 900px) and (max-height: 760px) {
+    .letras { margin-top: 1rem; }
+    .intro { margin-bottom: 1.5rem; }
+    .descargas { margin-bottom: 2rem; }
+  }
 </style>
 </head>
 <body>
 <main>
+  <header class="encabezado">
   <div class="letras" aria-hidden="true">α β γ Δ μ</div>
   <h1>Teclado griego</h1>
   <p class="intro">Un teclado flotante para escribir letras griegas en tus resúmenes. Clic en la letra y se escribe donde esté el cursor, sin copiar ni pegar. Gratis.</p>
+  </header>
 
   <div class="descargas">
     <a class="descarga" data-so="windows" data-archivo="TecladoGriego-Windows.exe" href="#">
@@ -97,13 +145,17 @@
     </a>
   </div>
 
+  <div class="contenido">
+  <section>
   <h2>Cómo se usa</h2>
   <ol>
     <li>Abra el programa: aparece una barra pequeña que queda siempre visible.</li>
     <li>Haga clic en su documento y deje el cursor donde quiere escribir.</li>
     <li>Haga clic en una letra del teclado. Las pestañas α, Α y ± cambian entre minúsculas, mayúsculas y símbolos.</li>
   </ol>
+  </section>
 
+  <section>
   <h2>La primera vez</h2>
   <details>
     <summary>Windows</summary>
@@ -117,6 +169,8 @@
     <summary>Linux</summary>
     <p>Descomprima el archivo y ejecute <code>./TecladoGriego</code>. Funciona en entornos con X11; en Wayland puede no escribir. Versión en prueba.</p>
   </details>
+  </section>
+  </div>
 
   <footer>Programa gratuito y sin publicidad. No recopila datos ni usa internet.</footer>
 </main>
@@ -129,14 +183,6 @@
   document.querySelectorAll("[data-archivo]").forEach(function (a) {
     a.href = base + a.dataset.archivo;
   });
-
-  const ua = navigator.userAgent;
-  let so = "";
-  if (!/Android|iPhone|iPad/.test(ua)) {
-    so = /Windows/.test(ua) ? "windows" : /Mac/.test(ua) ? "mac" : /Linux|X11/.test(ua) ? "linux" : "";
-  }
-  const actual = so && document.querySelector('[data-so="' + so + '"]');
-  if (actual) actual.classList.add("sugerido");
 </script>
 </body>
 </html>
