@@ -43,19 +43,19 @@ jobs:
       - name: Compilar (Windows)
         if: runner.os == 'Windows'
         run: |
-          pyinstaller --onefile --noconsole --name TecladoGriego teclado_griego.py
+          pyinstaller --onefile --noconsole --name TecladoGriego --icon icono.ico --add-data "icono.ico;." --add-data "icono.png;." teclado_griego.py
           mv dist/TecladoGriego.exe TecladoGriego-Windows.exe
 
       - name: Compilar (macOS)
         if: runner.os == 'macOS'
         run: |
-          pyinstaller --windowed --name TecladoGriego --collect-submodules pynput teclado_griego.py
+          pyinstaller --windowed --name TecladoGriego --icon icono.icns --add-data "icono.png:." --collect-submodules pynput teclado_griego.py
           ditto -c -k --keepParent dist/TecladoGriego.app TecladoGriego-Mac.zip
 
       - name: Compilar (Linux)
         if: runner.os == 'Linux'
         run: |
-          pyinstaller --onefile --noconsole --name TecladoGriego --collect-submodules pynput teclado_griego.py
+          pyinstaller --onefile --noconsole --name TecladoGriego --add-data "icono.png:." --collect-submodules pynput teclado_griego.py
           tar -czf TecladoGriego-Linux.tar.gz -C dist TecladoGriego
 
       - uses: actions/upload-artifact@v4

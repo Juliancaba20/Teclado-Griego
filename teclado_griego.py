@@ -4,12 +4,15 @@ Teclado griego flotante (Windows, macOS y Linux).
 - Queda siempre por encima de las demás ventanas.
 - Intenta no quitarle el foco a la aplicación en la que se escribe.
 - Al hacer clic en una letra, la escribe donde esté el cursor.
-- Se mueve arrastrando la barra superior. La "x" lo cierra.
+- Se mueve arrastrando la barra superior.
+- El botón "–" lo minimiza a la barra de tareas, como una ventana común;
+  se restaura haciendo clic en su ícono de la barra de tareas. La "x" lo cierra.
 
 Windows: no requiere nada adicional.
 macOS / Linux: requiere "pynput" (pip install pynput).
 """
 
+import os
 import sys
 import tkinter as tk
 
@@ -122,6 +125,27 @@ HOVER, TEXTO, ACENTO, CERRAR = "#45475a", "#cdd6f4", "#89b4fa", "#f38ba8"
 # ---------------------------------------------------------------------------
 raiz = tk.Tk()
 raiz.title("Teclado griego")
+
+
+def ruta_recurso(nombre):
+    """Ubica un archivo junto al programa, también dentro del ejecutable."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, nombre)
+
+
+def poner_icono():
+    try:
+        if SISTEMA == "win32":
+            raiz.iconbitmap(ruta_recurso("icono.ico"))
+        else:
+            imagen = tk.PhotoImage(file=ruta_recurso("icono.png"))
+            raiz.iconphoto(True, imagen)
+            raiz._imagen_icono = imagen  # evita que se libere de memoria
+    except Exception:
+        pass  # si falta el ícono, el programa funciona igual
+
+
+poner_icono()
 raiz.overrideredirect(True)
 raiz.attributes("-topmost", True)
 try:
@@ -148,6 +172,7 @@ barra.pack(fill="x")
 cuadricula = tk.Frame(raiz, bg=FONDO)
 cuadricula.pack(padx=3, pady=3)
 pestanas = {}
+estado = {"minimizado": False, "x": 120, "y": 120}
 
 
 def mostrar(pagina):
@@ -166,12 +191,43 @@ for nombre in PAGINAS:
     pestana.pack(side="left")
     pestanas[nombre] = pestana
 
+# El botón de cerrar se coloca primero para quedar en el extremo derecho
 crear_boton(barra, "✕", raiz.destroy, tamano=10, negrita=True, bg=BARRA,
             hover=CERRAR).pack(side="right")
+minimizar = crear_boton(barra, "–", lambda: minimizar_ventana(), tamano=10, negrita=True,
+                        bg=BARRA)
+minimizar.pack(side="right")
 
 asa = tk.Label(barra, text="⠿", bg=BARRA, fg="#6c7086", cursor="fleur",
                font=(FUENTE, 10))
 asa.pack(side="left", fill="x", expand=True)
+
+
+def minimizar_ventana():
+    """Minimiza el teclado a la barra de tareas, como una ventana común."""
+    estado["x"], estado["y"] = raiz.winfo_x(), raiz.winfo_y()
+    estado["minimizado"] = True
+    # Una ventana sin borde no puede minimizarse ni aparecer en la barra de
+    # tareas, así que se le devuelve el borde mientras está minimizada.
+    raiz.update_idletasks()
+    raiz.overrideredirect(False)
+    raiz.iconify()
+
+
+def al_restaurar(evento):
+    """Al volver desde la barra de tareas, se restablece la ventana sin borde."""
+    if evento.widget is not raiz or not estado["minimizado"]:
+        return
+    if raiz.state() != "normal":
+        return
+    estado["minimizado"] = False
+    raiz.overrideredirect(True)
+    raiz.geometry(f"+{estado['x']}+{estado['y']}")
+    raiz.attributes("-topmost", True)
+    raiz.after(80, lambda: evitar_foco(raiz))
+
+
+raiz.bind("<Map>", al_restaurar)
 
 desplazamiento = {"x": 0, "y": 0}
 
@@ -191,8 +247,9 @@ for zona in (barra, asa):
 
 
 def mantener_arriba():
-    raiz.attributes("-topmost", True)
-    raiz.lift()
+    if not estado["minimizado"]:
+        raiz.attributes("-topmost", True)
+        raiz.lift()
     raiz.after(1500, mantener_arriba)
 
 
