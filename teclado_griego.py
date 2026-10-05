@@ -6,6 +6,8 @@ Teclado griego flotante (Windows, macOS y Linux).
 - Al hacer clic en una letra, la escribe donde esté el cursor.
 - Se mueve arrastrando la barra superior (sin salirse de la pantalla).
 - Recuerda la última posición y la última pestaña usadas.
+- Al pasar el mouse sobre un símbolo, muestra su nombre en la barra superior.
+- Una fila de "usados recientemente" repite los últimos 9 símbolos escritos.
 - El botón "–" lo minimiza a la barra de tareas, como una ventana común;
   se restaura haciendo clic en su ícono de la barra de tareas. La "x" lo cierra.
 - Si no puede escribir, avisa en pantalla y copia el símbolo al portapapeles.
@@ -243,12 +245,45 @@ PAGINAS = {
     "α": list("αβγδεζηθικλμνξοπρσςτυφχψω"),
     "Α": list("ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"),
     "±": list("↑↓→←↔±≥≤≈°×·²³⁺⁻‰"),  # la μ (micro) está en la primera pestaña
+    # Química y medicina: subíndices, superíndices (² ³ ⁺ ⁻ están en "±") y símbolos
+    "H₂": list("₀₁₂₃₄₅₆₇₈₉⁰¹⁴⁵⁶⁷⁸⁹⇌≠∞√∑∝"),
 }
 COLUMNAS = 9
+MAX_RECIENTES = 9
+
+# Nombres que se muestran al pasar el mouse (deben ser cortos: caben en la barra)
+_GRIEGAS = [  # (minúscula, mayúscula, nombre)
+    ("α", "Α", "alfa"), ("β", "Β", "beta"), ("γ", "Γ", "gamma"), ("δ", "Δ", "delta"),
+    ("ε", "Ε", "épsilon"), ("ζ", "Ζ", "zeta"), ("η", "Η", "eta"), ("θ", "Θ", "theta"),
+    ("ι", "Ι", "iota"), ("κ", "Κ", "kappa"), ("λ", "Λ", "lambda"), ("μ", "Μ", "mu"),
+    ("ν", "Ν", "nu"), ("ξ", "Ξ", "xi"), ("ο", "Ο", "ómicron"), ("π", "Π", "pi"),
+    ("ρ", "Ρ", "rho"), ("σ", "Σ", "sigma"), ("τ", "Τ", "tau"), ("υ", "Υ", "ípsilon"),
+    ("φ", "Φ", "fi (phi)"), ("χ", "Χ", "ji (chi)"), ("ψ", "Ψ", "psi"), ("ω", "Ω", "omega"),
+]
+NOMBRES = {"ς": "sigma final"}
+for _min, _may, _nombre in _GRIEGAS:
+    NOMBRES[_min] = _nombre
+    NOMBRES[_may] = _nombre + " mayúscula"
+NOMBRES.update({
+    "↑": "flecha arriba", "↓": "flecha abajo", "→": "flecha derecha",
+    "←": "flecha izquierda", "↔": "flecha doble", "±": "más o menos",
+    "≥": "mayor o igual", "≤": "menor o igual", "≈": "aprox. igual",
+    "°": "grados", "×": "por (multiplicar)", "·": "punto medio",
+    "²": "al cuadrado", "³": "al cubo", "⁺": "superíndice más",
+    "⁻": "superíndice menos", "‰": "por mil",
+    "⇌": "reacción reversible", "≠": "distinto de", "∞": "infinito",
+    "√": "raíz cuadrada", "∑": "sumatoria", "∝": "proporcional a",
+})
+for _i, _c in enumerate("₀₁₂₃₄₅₆₇₈₉"):
+    NOMBRES[_c] = f"subíndice {_i}"
+for _c, _i in zip("⁰¹⁴⁵⁶⁷⁸⁹", (0, 1, 4, 5, 6, 7, 8, 9)):
+    NOMBRES[_c] = f"superíndice {_i}"
+SIMBOLOS_VALIDOS = {c for pagina in PAGINAS.values() for c in pagina}
 
 FONDO, BARRA, BOTON = "#1e1e2e", "#11111b", "#313244"
 HOVER, TEXTO, ACENTO, CERRAR = "#45475a", "#cdd6f4", "#89b4fa", "#f38ba8"
 AVISO_FONDO, AVISO_TEXTO = "#45475a", "#f9e2af"
+RECIENTE_FONDO, NOMBRE_TEXTO, ASA_TEXTO = "#383852", "#a6adc8", "#6c7086"
 
 
 def ruta_recurso(nombre):
@@ -258,13 +293,25 @@ def ruta_recurso(nombre):
 
 
 def crear_boton(padre, texto, comando, ancho=3, tamano=12, negrita=False,
-                bg=BOTON, fg=TEXTO, hover=HOVER):
+                bg=BOTON, fg=TEXTO, hover=HOVER, al_pasar=None):
+    """al_pasar(True/False) se llama cuando el mouse entra o sale del botón."""
     fuente = (FUENTE, tamano, "bold") if negrita else (FUENTE, tamano)
     etiqueta = tk.Label(padre, text=texto, width=ancho, font=fuente,
                         bg=bg, fg=fg, cursor="hand2")
+
+    def entrar(evento):
+        etiqueta.configure(bg=hover)
+        if al_pasar:
+            al_pasar(True)
+
+    def salir(evento):
+        etiqueta.configure(bg=bg)
+        if al_pasar:
+            al_pasar(False)
+
     etiqueta.bind("<Button-1>", lambda e: comando())
-    etiqueta.bind("<Enter>", lambda e: etiqueta.configure(bg=hover))
-    etiqueta.bind("<Leave>", lambda e: etiqueta.configure(bg=bg))
+    etiqueta.bind("<Enter>", entrar)
+    etiqueta.bind("<Leave>", salir)
     return etiqueta
 
 
@@ -287,6 +334,13 @@ class Teclado:
         config = cargar_config()
         pagina_inicial = config.get("pagina") if config.get("pagina") in PAGINAS else "α"
         self.pagina = pagina_inicial
+        recientes = config.get("recientes")
+        self.recientes = []
+        if isinstance(recientes, list):
+            for c in recientes:
+                if c in SIMBOLOS_VALIDOS and c not in self.recientes:
+                    self.recientes.append(c)
+        del self.recientes[MAX_RECIENTES:]
         self.minimizado = False
         self.x, self.y = 120, 120
         self.desplazamiento = (0, 0)
@@ -298,6 +352,9 @@ class Teclado:
                               font=(FUENTE, 9), justify="left", anchor="w",
                               padx=6, pady=3, cursor="hand2")
         self.aviso.bind("<Button-1>", lambda e: self.ocultar_aviso())
+        self.recientes_marco = tk.Frame(raiz, bg=FONDO)
+        self.recientes_marco.pack(padx=3, pady=(3, 0), anchor="w")
+        self.slots = [self.crear_slot(i) for i in range(MAX_RECIENTES)]
         self.cuadricula = tk.Frame(raiz, bg=FONDO)
         self.cuadricula.pack(padx=3, pady=3)
 
@@ -314,7 +371,8 @@ class Teclado:
                     bg=BARRA, hover=CERRAR).pack(side="right")
         crear_boton(self.barra, "–", self.minimizar_ventana, tamano=10, negrita=True,
                     bg=BARRA).pack(side="right")
-        self.asa = tk.Label(self.barra, text="⠿", bg=BARRA, fg="#6c7086",
+        # width=1: el texto se recorta en vez de agrandar la ventana
+        self.asa = tk.Label(self.barra, text="⠿", bg=BARRA, fg=ASA_TEXTO, width=1,
                             cursor="fleur", font=(FUENTE, 10))
         self.asa.pack(side="left", fill="x", expand=True)
 
@@ -323,6 +381,7 @@ class Teclado:
             zona.bind("<B1-Motion>", self.arrastrar)
             zona.bind("<ButtonRelease-1>", lambda e: self.guardar())
 
+        self.refrescar_recientes()
         self.fijar_tamano()  # recorre todas las pestañas para medirlas
         self.mostrar(pagina_inicial)
 
@@ -352,11 +411,14 @@ class Teclado:
 
     # -- páginas -------------------------------------------------------------
     def mostrar(self, pagina):
+        self.mostrar_nombre(None)
         for hijo in self.cuadricula.winfo_children():
             hijo.destroy()
         for i, caracter in enumerate(PAGINAS[pagina]):
             boton = crear_boton(self.cuadricula, caracter,
-                                lambda c=caracter: self.escribir_caracter(c))
+                                lambda c=caracter: self.escribir_caracter(c),
+                                al_pasar=lambda dentro, c=caracter:
+                                self.mostrar_nombre(NOMBRES.get(c) if dentro else None))
             boton.grid(row=i // COLUMNAS, column=i % COLUMNAS, padx=1, pady=1)
         for nombre, etiqueta in self.pestanas.items():
             etiqueta.configure(fg=ACENTO if nombre == pagina else TEXTO)
@@ -378,8 +440,62 @@ class Teclado:
         self.cuadricula.grid_propagate(False)
         self.aviso.configure(wraplength=max(ancho - 12, 100))
 
+    def mostrar_nombre(self, nombre):
+        """Muestra el nombre del símbolo en la barra (o el asa si no hay ninguno)."""
+        if nombre:
+            self.asa.configure(text=nombre, fg=NOMBRE_TEXTO, font=(FUENTE, 8))
+        else:
+            self.asa.configure(text="⠿", fg=ASA_TEXTO, font=(FUENTE, 10))
+
+    # -- fila de recientes ---------------------------------------------------
+    def crear_slot(self, indice):
+        etiqueta = tk.Label(self.recientes_marco, text="", width=3, font=(FUENTE, 12),
+                            bg=BARRA, fg=ACENTO)
+        etiqueta.grid(row=0, column=indice, padx=1, pady=1)
+
+        def lleno():
+            return indice < len(self.recientes)
+
+        def entrar(evento):
+            if lleno():
+                etiqueta.configure(bg=HOVER)
+                self.mostrar_nombre(NOMBRES.get(self.recientes[indice]))
+
+        def salir(evento):
+            etiqueta.configure(bg=RECIENTE_FONDO if lleno() else BARRA)
+            self.mostrar_nombre(None)
+
+        def pulsar(evento):
+            if lleno():
+                # Desde esta fila no se reordena: el símbolo no se mueve bajo el mouse.
+                self.escribir_caracter(self.recientes[indice], reordenar=False)
+
+        etiqueta.bind("<Enter>", entrar)
+        etiqueta.bind("<Leave>", salir)
+        etiqueta.bind("<Button-1>", pulsar)
+        return etiqueta
+
+    def refrescar_recientes(self):
+        for i, etiqueta in enumerate(self.slots):
+            if i < len(self.recientes):
+                etiqueta.configure(text=self.recientes[i], bg=RECIENTE_FONDO,
+                                   cursor="hand2")
+            else:
+                etiqueta.configure(text="", bg=BARRA, cursor="arrow")
+
+    def registrar_reciente(self, caracter, reordenar=True):
+        if caracter in self.recientes:
+            if not reordenar:
+                return
+            self.recientes.remove(caracter)
+        self.recientes.insert(0, caracter)
+        del self.recientes[MAX_RECIENTES:]
+        self.refrescar_recientes()
+        self.guardar()
+
     # -- escritura y avisos --------------------------------------------------
-    def escribir_caracter(self, caracter):
+    def escribir_caracter(self, caracter, reordenar=True):
+        self.registrar_reciente(caracter, reordenar)
         try:
             escribir(caracter)
         except Exception:
@@ -399,7 +515,7 @@ class Teclado:
         if self.trabajo_aviso is not None:
             self.raiz.after_cancel(self.trabajo_aviso)
         self.aviso.configure(text=texto)
-        self.aviso.pack(fill="x", padx=3, before=self.cuadricula)
+        self.aviso.pack(fill="x", padx=3, before=self.recientes_marco)
         self.trabajo_aviso = self.raiz.after(int(segundos * 1000), self.ocultar_aviso)
         self.raiz.after_idle(self.reajustar)
 
@@ -445,7 +561,7 @@ class Teclado:
         if not self.minimizado:
             self.x, self.y = self.raiz.winfo_x(), self.raiz.winfo_y()
         guardar_config({"version": VERSION, "x": self.x, "y": self.y,
-                        "pagina": self.pagina})
+                        "pagina": self.pagina, "recientes": self.recientes})
 
     # -- minimizar / restaurar / cerrar --------------------------------------
     def minimizar_ventana(self):
