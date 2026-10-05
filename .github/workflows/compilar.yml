@@ -2,7 +2,7 @@ name: Compilar teclado griego
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "V*"]
   workflow_dispatch:
 
 permissions:
@@ -31,14 +31,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar Tk en Linux
+      - name: Instalar Tk y pantalla virtual en Linux
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y python3-tk
+        run: sudo apt-get update && sudo apt-get install -y python3-tk xvfb
 
       - name: Instalar dependencias
         run: |
-          python -m pip install --upgrade pip pyinstaller
-          if [ "$RUNNER_OS" != "Windows" ]; then python -m pip install pynput; fi
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller==6.22.3
+          if [ "$RUNNER_OS" != "Windows" ]; then python -m pip install pynput==1.8.2; fi
 
       - name: Compilar (Windows)
         if: runner.os == 'Windows'
@@ -56,7 +57,24 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           pyinstaller --onefile --noconsole --name TecladoGriego --add-data "icono.png:." --collect-submodules pynput teclado_griego.py
-          tar -czf TecladoGriego-Linux.tar.gz -C dist TecladoGriego
+
+      - name: Probar arranque (Linux, pantalla virtual)
+        if: runner.os == 'Linux'
+        run: |
+          # El programa no termina solo: si sigue vivo tras 8 s (código 124), arrancó bien.
+          set +e
+          timeout 8 xvfb-run -a dist/TecladoGriego
+          codigo=$?
+          set -e
+          if [ "$codigo" -ne 124 ]; then
+            echo "El programa terminó antes de tiempo (código $codigo): falló el arranque."
+            exit 1
+          fi
+          echo "Arranque correcto."
+
+      - name: Empaquetar (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf TecladoGriego-Linux.tar.gz -C dist TecladoGriego
 
       - uses: actions/upload-artifact@v4
         with:
@@ -72,6 +90,12 @@ jobs:
         with:
           path: salida
           merge-multiple: true
+      - name: Generar sumas SHA-256
+        run: |
+          cd salida
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - uses: softprops/action-gh-release@v2
         with:
           files: salida/*
