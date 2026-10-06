@@ -5,8 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teclado griego</title>
 <meta name="description" content="Teclado flotante para escribir letras griegas en resúmenes de medicina. Gratis para Windows, Mac y Linux.">
+<link rel="canonical" href="https://teclado-griego.vercel.app/">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_AR">
+<meta property="og:site_name" content="Teclado griego">
+<meta property="og:title" content="Teclado griego">
+<meta property="og:description" content="Un teclado flotante para escribir letras griegas en sus resúmenes: clic en el símbolo y se escribe donde esté el cursor. Gratis para Windows, Mac y Linux.">
+<meta property="og:url" content="https://teclado-griego.vercel.app/">
+<meta property="og:image" content="https://teclado-griego.vercel.app/vista-previa.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Teclado griego: letras α β γ Δ μ y una vista del teclado flotante">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --fondo: #f3f6f8;
@@ -120,6 +132,45 @@
     .intro { margin-bottom: 1.5rem; }
     .descargas { margin-bottom: 2rem; }
   }
+
+  /* ---------- Novedades de la versión 1.2 ---------- */
+  a { color: var(--acento); }
+  a:focus-visible, summary:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 3px; }
+
+  /* Aviso para celulares y tablets: solo aparece en pantallas táctiles */
+  .aviso-movil {
+    display: none;
+    margin: 0 0 1.5rem; padding: .8rem 1rem;
+    border: 1px solid var(--acento); border-radius: 10px;
+    background: var(--tarjeta);
+  }
+  @media (hover: none) and (pointer: coarse) { .aviso-movil { display: block; } }
+
+  /* Etiqueta "Recomendado": la agrega el script, si puede detectar el sistema */
+  .descarga .recomendado {
+    display: none; font-size: .78rem; font-weight: 700; color: var(--acento);
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: .15rem;
+  }
+  .descarga.es-su-equipo { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento); }
+  .descarga.es-su-equipo .recomendado { display: block; }
+
+  .version { color: var(--suave); margin: -1.5rem 0 2rem; font-size: .95rem; }
+  @media (min-width: 900px) { .version { text-align: center; margin-top: -2rem; } }
+
+  .vista { margin: 0 auto 2.5rem; max-width: 26rem; }
+  .vista img {
+    display: block; width: 100%; height: auto;
+    border: 1px solid var(--linea); border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+  }
+  .vista figcaption { color: var(--suave); font-size: .9rem; margin-top: .6rem; text-align: center; }
+
+  .extra { color: var(--suave); margin: -1rem 0 2rem; font-size: .95rem; }
+  .pasos { margin: .6rem 0 0; padding-left: 1.2rem; }
+  .pasos li { color: var(--suave); }
+
+  footer a { color: inherit; }
+  footer .enlaces { margin: .5rem 0 0; }
 </style>
 </head>
 <body>
@@ -127,23 +178,31 @@
   <header class="encabezado">
   <div class="letras" aria-hidden="true">α β γ Δ μ</div>
   <h1>Teclado griego</h1>
-  <p class="intro">Un teclado flotante para escribir letras griegas en tus resúmenes. Clic en la letra y se escribe donde esté el cursor, sin copiar ni pegar. Gratis.</p>
+  <p class="intro">Un teclado flotante para escribir letras griegas en sus resúmenes. Clic en la letra y se escribe donde esté el cursor, sin copiar ni pegar. Gratis.</p>
   </header>
 
+  <p class="aviso-movil" role="note"><b>Este programa es para computadoras</b> (Windows, Mac o Linux). Si está en un celular o una tablet, abra esta página desde su computadora para descargarlo.</p>
+
   <div class="descargas">
-    <a class="descarga" data-so="windows" data-archivo="TecladoGriego-Windows.exe" href="#">
-      <span><b>Windows</b><small>Archivo .exe, se abre con doble clic</small></span>
+    <a class="descarga" data-so="windows" href="https://github.com/Juliancaba20/Teclado-Griego/releases/latest/download/TecladoGriego-Windows.exe">
+      <span><em class="recomendado">Recomendado para su equipo</em><b>Windows</b><small>Archivo .exe, se abre con doble clic</small></span>
       <span class="boton">Descargar</span>
     </a>
-    <a class="descarga" data-so="mac" data-archivo="TecladoGriego-Mac.zip" href="#">
-      <span><b>Mac</b><small>Archivo .zip, para Mac con chip M1 o posterior</small></span>
+    <a class="descarga" data-so="mac" href="https://github.com/Juliancaba20/Teclado-Griego/releases/latest/download/TecladoGriego-Mac.zip">
+      <span><em class="recomendado">Recomendado para su equipo</em><b>Mac</b><small>Archivo .zip, para Mac con chip M1 o posterior. Versión en prueba</small></span>
       <span class="boton">Descargar</span>
     </a>
-    <a class="descarga" data-so="linux" data-archivo="TecladoGriego-Linux.tar.gz" href="#">
-      <span><b>Linux</b><small>Archivo .tar.gz, para escritorio con X11</small></span>
+    <a class="descarga" data-so="linux" href="https://github.com/Juliancaba20/Teclado-Griego/releases/latest/download/TecladoGriego-Linux.tar.gz">
+      <span><em class="recomendado">Recomendado para su equipo</em><b>Linux</b><small>Archivo .tar.gz, para escritorio con X11. Versión en prueba</small></span>
       <span class="boton">Descargar</span>
     </a>
   </div>
+  <p class="version">Versión actual: <b id="version">1.2</b></p>
+
+  <figure class="vista">
+    <img src="captura-teclado.gif" width="627" height="230" alt="Vista del teclado griego: una barra con las pestañas α, Α, ± y H₂, una fila de símbolos usados recientemente y la cuadrícula de letras. Al pasar el mouse sobre un símbolo, la barra muestra su nombre." loading="lazy">
+    <figcaption>Así se ve. Captura en Linux; en Windows y Mac la tipografía cambia levemente.</figcaption>
+  </figure>
 
   <div class="contenido">
   <section>
@@ -151,38 +210,82 @@
   <ol>
     <li>Abra el programa: aparece una barra pequeña que queda siempre visible.</li>
     <li>Haga clic en su documento y deje el cursor donde quiere escribir.</li>
-    <li>Haga clic en una letra del teclado. Las pestañas α, Α y ± cambian entre minúsculas, mayúsculas y símbolos.</li>
+    <li>Haga clic en una letra del teclado. Las pestañas α, Α, ± y H₂ cambian entre minúsculas, mayúsculas, símbolos y química o medicina (subíndices, superíndices, ⇌, ∑, ∝).</li>
+    <li>Pase el mouse sobre un símbolo para ver su nombre. La fila de arriba repite los últimos que usó.</li>
   </ol>
+  <p class="extra">El botón ▴ reduce el teclado a una sola fila. En Windows y en Linux con X11, <code>Ctrl+Alt+G</code> lo oculta y lo vuelve a mostrar.</p>
   </section>
 
   <section>
   <h2>La primera vez</h2>
   <details>
     <summary>Windows</summary>
-    <p>Puede aparecer "Windows protegió su PC". Elija <em>Más información</em> y luego <em>Ejecutar de todas formas</em>. El programa no tiene firma digital, pero no instala nada.</p>
+    <p>Puede aparecer "Windows protegió su PC". Elija <em>Más información</em> y luego <em>Ejecutar de todas formas</em>. El programa no tiene firma digital, por eso Windows avisa, pero no instala nada ni se conecta a internet. Algunos antivirus pueden advertir lo mismo por esa razón.</p>
   </details>
   <details>
-    <summary>Mac</summary>
-    <p>Descomprima el .zip, haga clic derecho sobre la aplicación y elija <em>Abrir</em>. Después, en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Accesibilidad, permita la aplicación para que pueda escribir en otros programas. Versión en prueba.</p>
+    <summary>Mac (macOS Sequoia o posterior)</summary>
+    <ol class="pasos">
+      <li>Descomprima el .zip y mueva la aplicación a la carpeta Aplicaciones.</li>
+      <li>Ábrala con doble clic. macOS mostrará un aviso de que no pudo verificarla: ciérrelo.</li>
+      <li>Abra Ajustes del Sistema &gt; Privacidad y seguridad, baje hasta la sección <em>Seguridad</em> y pulse <em>Abrir igualmente</em>. Confirme con su contraseña o Touch ID.</li>
+      <li>En Privacidad y seguridad &gt; Accesibilidad, active la aplicación para que pueda escribir en otros programas.</li>
+    </ol>
+    <p>En macOS 14 o anterior también sirve hacer clic derecho sobre la aplicación y elegir <em>Abrir</em>. Versión en prueba.</p>
   </details>
   <details>
     <summary>Linux</summary>
-    <p>Descomprima el archivo y ejecute <code>./TecladoGriego</code>. Funciona en entornos con X11; en Wayland puede no escribir. Versión en prueba.</p>
+    <p>Descomprima el archivo con <code>tar -xzf TecladoGriego-Linux.tar.gz</code> y ejecute <code>./TecladoGriego</code>. Funciona en entornos con X11; en Wayland puede no escribir (el programa avisa). Versión en prueba.</p>
   </details>
   </section>
   </div>
 
-  <footer>Programa gratuito y sin publicidad. No recopila datos ni usa internet.</footer>
+  <footer>
+    Programa gratuito y sin publicidad. No recopila datos ni usa internet.
+    <p class="enlaces">
+      <a href="https://github.com/Juliancaba20/Teclado-Griego">Código fuente</a> ·
+      <a href="https://github.com/Juliancaba20/Teclado-Griego/issues">Informar un problema</a> ·
+      <a href="https://github.com/Juliancaba20/Teclado-Griego/releases">Todas las versiones</a>
+    </p>
+  </footer>
 </main>
 
 <script>
-  // Reemplazar por su usuario y repositorio de GitHub, por ejemplo "julian/teclado-griego"
-  const REPO = "Juliancaba20/Teclado-Griego";
+  // Mejoras opcionales: la página y las descargas funcionan igual sin este script.
+  (function () {
+    var REPO = "Juliancaba20/Teclado-Griego";
 
-  const base = "https://github.com/" + REPO + "/releases/latest/download/";
-  document.querySelectorAll("[data-archivo]").forEach(function (a) {
-    a.href = base + a.dataset.archivo;
-  });
+    // 1) Resaltar la descarga que corresponde al equipo del visitante
+    var ua = navigator.userAgent || "";
+    var tactil = (navigator.maxTouchPoints || 0) > 1;
+    var so = null;
+    if (!/Android|iPhone|iPad|iPod/i.test(ua) && !(tactil && /Mac/i.test(ua))) {
+      if (/Windows/i.test(ua)) so = "windows";
+      else if (/Mac/i.test(ua)) so = "mac";
+      else if (/Linux|X11/i.test(ua)) so = "linux";
+    }
+    if (so) {
+      var tarjeta = document.querySelector('.descarga[data-so="' + so + '"]');
+      if (tarjeta) tarjeta.classList.add("es-su-equipo");
+    }
+
+    // 2) Mostrar la versión publicada en GitHub
+    if (!window.fetch) return;
+    var control = window.AbortController ? new AbortController() : null;
+    var espera = setTimeout(function () { if (control) control.abort(); }, 6000);
+    fetch("https://api.github.com/repos/" + REPO + "/releases/latest", {
+      headers: { "Accept": "application/vnd.github+json" },
+      signal: control ? control.signal : undefined
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (datos) {
+        clearTimeout(espera);
+        var etiqueta = String(datos.tag_name || "").replace(/^[vV]/, "");
+        if (/^[0-9A-Za-z.\-]{1,20}$/.test(etiqueta)) {
+          document.getElementById("version").textContent = etiqueta;
+        }
+      })
+      .catch(function () { clearTimeout(espera); /* sin conexión o límite de GitHub: queda el texto fijo */ });
+  })();
 </script>
 </body>
 </html>
