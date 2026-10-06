@@ -50,17 +50,21 @@ jobs:
       - name: Compilar (macOS)
         if: runner.os == 'macOS'
         run: |
-          pyinstaller --windowed --name TecladoGriego --icon icono.icns --add-data "icono.png:." --collect-submodules pynput teclado_griego.py
+          pyinstaller --windowed --name TecladoGriego --icon icono.icns --add-data "icono.png:." --collect-submodules pynput --hidden-import pynput.keyboard._darwin --hidden-import pynput.mouse._darwin --hidden-import pynput._util.darwin teclado_griego.py
           ditto -c -k --keepParent dist/TecladoGriego.app TecladoGriego-Mac.zip
 
       - name: Compilar (Linux)
         if: runner.os == 'Linux'
         run: |
-          pyinstaller --onefile --noconsole --name TecladoGriego --add-data "icono.png:." --collect-submodules pynput teclado_griego.py
+          # Los módulos de pynput para X11 se cargan dinámicamente y, al compilar sin
+          # pantalla, PyInstaller no los detecta: sin esto el programa no podría escribir.
+          pyinstaller --onefile --noconsole --name TecladoGriego --add-data "icono.png:." --collect-submodules pynput --hidden-import pynput.keyboard._xorg --hidden-import pynput.mouse._xorg --hidden-import pynput._util.xorg --collect-submodules Xlib teclado_griego.py
 
       - name: Probar arranque (Linux, pantalla virtual)
         if: runner.os == 'Linux'
         run: |
+          # Comprueba que el ejecutable incluya el módulo para escribir.
+          xvfb-run -a dist/TecladoGriego --autodiagnostico
           # El programa no termina solo: si sigue vivo tras 8 s (código 124), arrancó bien.
           set +e
           timeout 8 xvfb-run -a dist/TecladoGriego
@@ -90,12 +94,6 @@ jobs:
         with:
           path: salida
           merge-multiple: true
-      - name: Generar sumas SHA-256
-        run: |
-          cd salida
-          sha256sum * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
       - uses: softprops/action-gh-release@v2
         with:
           files: salida/*

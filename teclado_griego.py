@@ -8,6 +8,9 @@ Teclado griego flotante (Windows, macOS y Linux).
 - Recuerda la última posición y la última pestaña usadas.
 - Al pasar el mouse sobre un símbolo, muestra su nombre en la barra superior.
 - Una fila de "usados recientemente" repite los últimos 9 símbolos escritos.
+- Modo compacto (botón ▴/▾): deja solo la barra y la fila de recientes.
+- Atajo global (Ctrl+Alt+G por defecto, solo Windows y Linux con X11) para
+  ocultar o mostrar el teclado. Se puede cambiar en el archivo de configuración.
 - El botón "–" lo minimiza a la barra de tareas, como una ventana común;
   se restaura haciendo clic en su ícono de la barra de tareas. La "x" lo cierra.
 - Si no puede escribir, avisa en pantalla y copia el símbolo al portapapeles.
@@ -18,10 +21,13 @@ macOS / Linux: requiere "pynput" (pip install pynput).
 
 import json
 import os
+import queue
+import re
 import sys
+import threading
 import tkinter as tk
 
-VERSION = "1.2"
+VERSION = "1.3"
 NOMBRE_APP = "TecladoGriego"
 SISTEMA = sys.platform  # "win32", "darwin" o "linux"
 
@@ -46,6 +52,7 @@ if SISTEMA == "win32":
     WS_EX_TOPMOST = 0x00000008
     GA_ROOT = 2
     ERROR_ALREADY_EXISTS = 183
+    WM_HOTKEY = 0x0312
     ULONG_PTR = ctypes.c_size_t
 
     class KEYBDINPUT(ctypes.Structure):
@@ -76,6 +83,11 @@ if SISTEMA == "win32":
     user32.SetWindowLongW.restype = ctypes.c_long
     user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
     user32.SendInput.restype = wintypes.UINT
+    user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
+    user32.RegisterHotKey.restype = wintypes.BOOL
+    user32.GetMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), wintypes.HWND,
+                                   wintypes.UINT, wintypes.UINT]
+    user32.GetMessageW.restype = ctypes.c_int
 
     def escribir(texto):
         for caracter in texto:
@@ -120,8 +132,27 @@ if SISTEMA == "win32":
 
     def avisar_ya_abierto():
         user32.MessageBoxW(None, "El Teclado griego ya está abierto.\n\n"
-                           "Si no lo ve, búsquelo en la barra de tareas.",
+                           "Si no lo ve, puede estar oculto: use su atajo "
+                           "(por defecto Ctrl+Alt+G) o búsquelo en la barra de tareas.",
                            "Teclado griego", 0x40)
+
+    def iniciar_atajo(mods, tecla, cola):
+        """Registra el atajo global. Los avisos llegan por la cola (hilo aparte)."""
+        banderas, codigo = codigo_atajo_windows(mods, tecla)
+
+        def trabajo():
+            # El atajo y su bucle de mensajes deben vivir en el mismo hilo.
+            if not user32.RegisterHotKey(None, 1, banderas, codigo):
+                cola.put(("error", None))
+                return
+            mensaje = wintypes.MSG()
+            while user32.GetMessageW(ctypes.byref(mensaje), None, 0, 0) > 0:
+                if mensaje.message == WM_HOTKEY:
+                    cola.put(("atajo", None))
+
+        hilo = threading.Thread(target=trabajo, daemon=True)
+        hilo.start()
+        return hilo
 
     def limites_virtuales(raiz):
         """Rectángulo que abarca todos los monitores: (x0, y0, x1, y1)."""
@@ -163,8 +194,68 @@ else:
             return None  # no se detectan de forma fiable varias pantallas
         return 0, 0, raiz.winfo_screenwidth(), raiz.winfo_screenheight()
 
+    def iniciar_atajo(mods, tecla, cola):
+        """Atajo global solo en Linux con X11 (devuelve None si no es posible)."""
+        if SISTEMA != "linux" or en_wayland():
+            return None
+        try:
+            from pynput import keyboard
+            nombres = {"ctrl": "<ctrl>", "alt": "<alt>", "shift": "<shift>", "win": "<cmd>"}
+            final = f"<{tecla}>" if len(tecla) > 1 else tecla
+            combinacion = "+".join([nombres[m] for m in mods] + [final])
+            escucha = keyboard.GlobalHotKeys({combinacion: lambda: cola.put(("atajo", None))})
+            escucha.daemon = True
+            escucha.start()
+            return escucha
+        except Exception:
+            cola.put(("error", None))
+            return None
+
     FUENTE = "Helvetica Neue" if SISTEMA == "darwin" else "DejaVu Sans"
     ATAJO_PEGAR = "Cmd+V" if SISTEMA == "darwin" else "Ctrl+V"
+
+
+# ---------------------------------------------------------------------------
+# Atajo global (formato de texto: "ctrl+alt+g")
+# ---------------------------------------------------------------------------
+ATAJO_PREDETERMINADO = "ctrl+alt+g"
+_MODIFICADORES = ("ctrl", "alt", "shift", "win")
+
+
+def analizar_atajo(texto):
+    """'ctrl+alt+g' -> (['ctrl', 'alt'], 'g'). Devuelve None si no es válido."""
+    if not isinstance(texto, str):
+        return None
+    partes = [p.strip().lower() for p in texto.split("+")]
+    if len(partes) < 2 or "" in partes:
+        return None
+    *mods, tecla = partes
+    if len(set(mods)) != len(mods) or not set(mods) <= set(_MODIFICADORES):
+        return None
+    es_letra_o_numero = len(tecla) == 1 and tecla.isascii() and tecla.isalnum()
+    if not (es_letra_o_numero or re.fullmatch(r"f([1-9]|1[0-2])", tecla)):
+        return None
+    return mods, tecla
+
+
+def texto_atajo(mods, tecla):
+    """Para mostrar al usuario: 'Ctrl+Alt+G'."""
+    return "+".join([m.capitalize() for m in mods] + [tecla.upper()])
+
+
+def codigo_atajo_windows(mods, tecla):
+    """(banderas, código de tecla virtual) para RegisterHotKey de Windows."""
+    banderas = 0x4000  # MOD_NOREPEAT: no repite al mantener pulsado
+    for m in mods:
+        banderas |= {"alt": 0x1, "ctrl": 0x2, "shift": 0x4, "win": 0x8}[m]
+    if len(tecla) > 1:  # F1 a F12
+        return banderas, 0x70 + int(tecla[1:]) - 1
+    return banderas, ord(tecla.upper())
+
+
+def en_wayland():
+    return (os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland"
+            or bool(os.environ.get("WAYLAND_DISPLAY")))
 
 
 # ---------------------------------------------------------------------------
@@ -186,8 +277,7 @@ def avisos_de_entorno():
     """Lista de avisos para mostrar al iniciar (vacía si todo está en orden)."""
     avisos = []
     if SISTEMA == "linux":
-        sesion = os.environ.get("XDG_SESSION_TYPE", "").lower()
-        if sesion == "wayland" or os.environ.get("WAYLAND_DISPLAY"):
+        if en_wayland():
             avisos.append("Está usando Wayland: el teclado puede no escribir en algunas "
                           "aplicaciones. Inicie sesión con Xorg/X11 o pegue el símbolo "
                           "con " + ATAJO_PEGAR + ".")
@@ -263,15 +353,15 @@ _GRIEGAS = [  # (minúscula, mayúscula, nombre)
 NOMBRES = {"ς": "sigma final"}
 for _min, _may, _nombre in _GRIEGAS:
     NOMBRES[_min] = _nombre
-    NOMBRES[_may] = _nombre + " mayúscula"
+    NOMBRES[_may] = _nombre + " mayús."
 NOMBRES.update({
     "↑": "flecha arriba", "↓": "flecha abajo", "→": "flecha derecha",
     "←": "flecha izquierda", "↔": "flecha doble", "±": "más o menos",
     "≥": "mayor o igual", "≤": "menor o igual", "≈": "aprox. igual",
     "°": "grados", "×": "por (multiplicar)", "·": "punto medio",
-    "²": "al cuadrado", "³": "al cubo", "⁺": "superíndice más",
-    "⁻": "superíndice menos", "‰": "por mil",
-    "⇌": "reacción reversible", "≠": "distinto de", "∞": "infinito",
+    "²": "al cuadrado", "³": "al cubo", "⁺": "superíndice +",
+    "⁻": "superíndice −", "‰": "por mil",
+    "⇌": "equilibrio", "≠": "distinto de", "∞": "infinito",
     "√": "raíz cuadrada", "∑": "sumatoria", "∝": "proporcional a",
 })
 for _i, _c in enumerate("₀₁₂₃₄₅₆₇₈₉"):
@@ -345,6 +435,21 @@ class Teclado:
         self.x, self.y = 120, 120
         self.desplazamiento = (0, 0)
         self.trabajo_aviso = None
+        self.compacto = False
+        self.oculto = False
+        self.cola_atajo = queue.SimpleQueue()
+        self.escucha_atajo = None
+        aviso_atajo = None
+        atajo_texto = config.get("atajo", ATAJO_PREDETERMINADO)
+        if atajo_texto == "":
+            self.atajo = None  # desactivado por el usuario
+        else:
+            self.atajo = analizar_atajo(atajo_texto)
+            if self.atajo is None:
+                predeterminado = analizar_atajo(ATAJO_PREDETERMINADO)
+                aviso_atajo = (f"El atajo «{atajo_texto}» del archivo de configuración "
+                               f"no es válido; se usa {texto_atajo(*predeterminado)}.")
+                self.atajo = predeterminado
 
         self.barra = tk.Frame(raiz, bg=BARRA)
         self.barra.pack(fill="x")
@@ -371,6 +476,11 @@ class Teclado:
                     bg=BARRA, hover=CERRAR).pack(side="right")
         crear_boton(self.barra, "–", self.minimizar_ventana, tamano=10, negrita=True,
                     bg=BARRA).pack(side="right")
+        self.boton_compacto = crear_boton(
+            self.barra, "▴", self.alternar_compacto, tamano=10, negrita=True, bg=BARRA,
+            al_pasar=lambda dentro: self.mostrar_nombre(
+                ("Expandir" if self.compacto else "Modo compacto") if dentro else None))
+        self.boton_compacto.pack(side="right")
         # width=1: el texto se recorta en vez de agrandar la ventana
         self.asa = tk.Label(self.barra, text="⠿", bg=BARRA, fg=ASA_TEXTO, width=1,
                             cursor="fleur", font=(FUENTE, 10))
@@ -384,6 +494,8 @@ class Teclado:
         self.refrescar_recientes()
         self.fijar_tamano()  # recorre todas las pestañas para medirlas
         self.mostrar(pagina_inicial)
+        if config.get("compacto") is True:
+            self.aplicar_compacto(True)
 
         raiz.update_idletasks()
         self.x, self.y = self.limitar(config.get("x"), config.get("y"))
@@ -394,8 +506,13 @@ class Teclado:
         raiz.after(100, lambda: evitar_foco(raiz))
         raiz.after(1500, self.mantener_arriba)
         avisos = avisos_de_entorno()
+        if aviso_atajo:
+            avisos.append(aviso_atajo)
         if avisos:
             raiz.after(400, lambda: self.avisar("\n\n".join(avisos), segundos=20))
+        if self.atajo and SISTEMA in ("win32", "linux"):
+            self.escucha_atajo = iniciar_atajo(*self.atajo, self.cola_atajo)
+        raiz.after(100, self.revisar_atajo)
 
     # -- ícono ---------------------------------------------------------------
     def poner_icono(self):
@@ -426,7 +543,61 @@ class Teclado:
 
     def cambiar_pagina(self, pagina):
         self.mostrar(pagina)
+        if self.compacto:
+            self.alternar_compacto(False)  # elegir una pestaña expande el teclado
+        else:
+            self.guardar()
+
+    # -- modo compacto -------------------------------------------------------
+    def aplicar_compacto(self, compacto):
+        """Muestra u oculta la cuadrícula (queda solo la barra y los recientes)."""
+        self.compacto = compacto
+        if compacto:
+            self.cuadricula.pack_forget()
+        else:
+            self.cuadricula.pack(padx=3, pady=3)
+        self.recientes_marco.pack_configure(pady=(3, 3) if compacto else (3, 0))
+        self.boton_compacto.configure(text="▾" if compacto else "▴")
+
+    def alternar_compacto(self, compacto=None):
+        self.aplicar_compacto(not self.compacto if compacto is None else compacto)
+        self.mostrar_nombre("Expandir" if self.compacto else "Modo compacto")
+        self.raiz.after_idle(self.reajustar)
         self.guardar()
+
+    # -- atajo global: ocultar / mostrar -------------------------------------
+    def revisar_atajo(self):
+        """Atiende los avisos del hilo del atajo (se consulta cada 100 ms)."""
+        try:
+            while True:
+                tipo, _ = self.cola_atajo.get_nowait()
+                if tipo == "atajo":
+                    self.alternar_visibilidad()
+                elif tipo == "error":
+                    self.avisar(f"No se pudo activar el atajo {texto_atajo(*self.atajo)}: "
+                                "quizá otra aplicación ya lo usa. Puede cambiarlo en el "
+                                f"archivo {ruta_config()}", segundos=15)
+        except queue.Empty:
+            pass
+        self.raiz.after(100, self.revisar_atajo)
+
+    def alternar_visibilidad(self):
+        if self.oculto or self.minimizado:
+            self.mostrar_ventana()
+        else:
+            self.guardar()
+            self.oculto = True
+            self.raiz.withdraw()
+
+    def mostrar_ventana(self):
+        estaba_minimizado = self.minimizado
+        self.oculto = False
+        self.raiz.deiconify()  # si estaba minimizado, al_restaurar completa el trabajo
+        if not estaba_minimizado:
+            self.raiz.geometry(f"+{self.x}+{self.y}")
+            self.raiz.attributes("-topmost", True)
+            self.raiz.lift()
+            self.raiz.after(80, lambda: evitar_foco(self.raiz))
 
     def fijar_tamano(self):
         """Todas las pestañas ocupan lo mismo que la más grande (sin saltos de alto)."""
@@ -528,7 +699,7 @@ class Teclado:
 
     def reajustar(self):
         """Tras cambiar de tamaño, evita que la ventana quede fuera de la pantalla."""
-        if self.minimizado:
+        if self.minimizado or self.oculto:
             return
         self.raiz.update_idletasks()
         self.x, self.y = self.limitar(self.raiz.winfo_x(), self.raiz.winfo_y())
@@ -558,10 +729,12 @@ class Teclado:
         self.raiz.geometry(f"+{self.x}+{self.y}")
 
     def guardar(self):
-        if not self.minimizado:
+        if not self.minimizado and not self.oculto:
             self.x, self.y = self.raiz.winfo_x(), self.raiz.winfo_y()
         guardar_config({"version": VERSION, "x": self.x, "y": self.y,
-                        "pagina": self.pagina, "recientes": self.recientes})
+                        "pagina": self.pagina, "recientes": self.recientes,
+                        "compacto": self.compacto,
+                        "atajo": texto_atajo(*self.atajo).lower() if self.atajo else ""})
 
     # -- minimizar / restaurar / cerrar --------------------------------------
     def minimizar_ventana(self):
@@ -588,7 +761,7 @@ class Teclado:
         self.raiz.after(80, lambda: evitar_foco(self.raiz))
 
     def mantener_arriba(self):
-        if not self.minimizado:
+        if not self.minimizado and not self.oculto:
             self.raiz.attributes("-topmost", True)
             self.raiz.lift()
         self.raiz.after(1500, self.mantener_arriba)
@@ -601,10 +774,25 @@ class Teclado:
         self.raiz.mainloop()
 
 
+def autodiagnostico():
+    """Comprueba que el módulo de escritura esté disponible (lo usa la compilación)."""
+    if SISTEMA != "win32":
+        try:
+            from pynput.keyboard import Controller
+            Controller()
+        except Exception as error:
+            print("ERROR: no se puede escribir:", error)
+            return 1
+    print("OK")
+    return 0
+
+
 def main():
     if "--version" in sys.argv[1:]:
         print(VERSION)
         return
+    if "--autodiagnostico" in sys.argv[1:]:
+        sys.exit(autodiagnostico())
     if SISTEMA == "win32":
         activar_dpi()  # debe hacerse antes de crear la ventana
         if not instancia_unica():

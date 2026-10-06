@@ -24,6 +24,24 @@ Ese enlace es el que puede compartir.
 
 Modifique `teclado_griego.py`, cree un nuevo release con otra etiqueta (`v1.1`) y los botones de la web descargan automáticamente la última versión.
 
+## Uso del teclado
+
+- **Escribir:** haga clic en un símbolo y se escribe donde esté el cursor. Al pasar el mouse por encima, la barra superior muestra su nombre.
+- **Recientes:** la fila de arriba repite los últimos 9 símbolos usados.
+- **Modo compacto:** el botón `▴` deja solo la barra y la fila de recientes; `▾` lo expande (elegir una pestaña también lo expande).
+- **Ocultar y mostrar:** con el atajo **Ctrl+Alt+G** (solo Windows y Linux con X11). Si el teclado no aparece, pruebe el atajo: puede estar oculto.
+- **Si no puede escribir** (por ejemplo, en un programa que se ejecuta como administrador), el teclado lo avisa y copia el símbolo para pegarlo con Ctrl+V.
+
+### Cambiar el atajo
+
+El programa guarda su configuración en un archivo `config.json`:
+
+- Windows: `%APPDATA%\TecladoGriego\config.json`
+- Mac: `~/Library/Application Support/TecladoGriego/config.json`
+- Linux: `~/.config/TecladoGriego/config.json`
+
+Con el programa cerrado, edite la línea `"atajo"`. Formato: modificadores (`ctrl`, `alt`, `shift`, `win`) más una letra, número o tecla F1 a F12, unidos con `+`; por ejemplo `"ctrl+shift+k"` o `"ctrl+alt+f9"`. Con `""` el atajo queda desactivado.
+
 ## Importante
 
 - La versión de Windows es la más probable que funcione sin ajustes. Las de Mac y Linux no pudieron probarse y deben considerarse en prueba.
