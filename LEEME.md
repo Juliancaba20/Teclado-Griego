@@ -1,4 +1,4 @@
-# Teclado griego: cómo publicar la web con las 3 descargas
+# Teclado Científico: cómo publicar la web con las 3 descargas
 
 Contenido de esta carpeta:
 
@@ -36,9 +36,9 @@ Modifique `teclado_griego.py`, cree un nuevo release con otra etiqueta (`v1.1`) 
 
 El programa guarda su configuración en un archivo `config.json`:
 
-- Windows: `%APPDATA%\TecladoGriego\config.json`
-- Mac: `~/Library/Application Support/TecladoGriego/config.json`
-- Linux: `~/.config/TecladoGriego/config.json`
+- Windows: `%APPDATA%\TecladoCientifico\config.json`
+- Mac: `~/Library/Application Support/TecladoCientifico/config.json`
+- Linux: `~/.config/TecladoCientifico/config.json`
 
 Con el programa cerrado, edite la línea `"atajo"`. Formato: modificadores (`ctrl`, `alt`, `shift`, `win`) más una letra, número o tecla F1 a F12, unidos con `+`; por ejemplo `"ctrl+shift+k"` o `"ctrl+alt+f9"`. Con `""` el atajo queda desactivado.
 

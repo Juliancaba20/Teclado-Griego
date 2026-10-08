@@ -1,5 +1,5 @@
 """
-Teclado griego flotante (Windows, macOS y Linux).
+Teclado Científico: teclado flotante de letras griegas y símbolos (Windows, macOS y Linux).
 
 - Queda siempre por encima de las demás ventanas.
 - Intenta no quitarle el foco a la aplicación en la que se escribe.
@@ -27,8 +27,9 @@ import sys
 import threading
 import tkinter as tk
 
-VERSION = "1.3"
-NOMBRE_APP = "TecladoGriego"
+VERSION = "1.4"
+NOMBRE_APP = "TecladoCientifico"
+NOMBRE_APP_ANTERIOR = "TecladoGriego"  # nombre de la carpeta de configuración hasta la v1.3
 SISTEMA = sys.platform  # "win32", "darwin" o "linux"
 
 
@@ -131,10 +132,10 @@ if SISTEMA == "win32":
             return True  # si no se puede comprobar, se deja abrir
 
     def avisar_ya_abierto():
-        user32.MessageBoxW(None, "El Teclado griego ya está abierto.\n\n"
+        user32.MessageBoxW(None, "El Teclado Científico ya está abierto.\n\n"
                            "Si no lo ve, puede estar oculto: use su atajo "
                            "(por defecto Ctrl+Alt+G) o búsquelo en la barra de tareas.",
-                           "Teclado griego", 0x40)
+                           "Teclado Científico", 0x40)
 
     def iniciar_atajo(mods, tecla, cola):
         """Registra el atajo global. Los avisos llegan por la cola (hilo aparte)."""
@@ -297,23 +298,31 @@ def avisos_de_entorno():
 # ---------------------------------------------------------------------------
 # Configuración guardada (posición y pestaña)
 # ---------------------------------------------------------------------------
-def ruta_config():
+def ruta_config(nombre=None):
     if SISTEMA == "win32":
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
     elif SISTEMA == "darwin":
         base = os.path.expanduser("~/Library/Application Support")
     else:
         base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    return os.path.join(base, NOMBRE_APP, "config.json")
+    return os.path.join(base, nombre or NOMBRE_APP, "config.json")
 
 
-def cargar_config():
+def _leer_config(ruta):
     try:
-        with open(ruta_config(), encoding="utf-8") as archivo:
+        with open(ruta, encoding="utf-8") as archivo:
             datos = json.load(archivo)
         return datos if isinstance(datos, dict) else {}
     except (OSError, ValueError):
         return {}
+
+
+def cargar_config():
+    if os.path.exists(ruta_config()):
+        return _leer_config(ruta_config())
+    # Primera vez tras el cambio de nombre: se aprovecha la configuración anterior
+    # (posición, pestaña y atajo) para que el usuario no la pierda.
+    return _leer_config(ruta_config(NOMBRE_APP_ANTERIOR))
 
 
 def guardar_config(datos):
@@ -411,7 +420,7 @@ def crear_boton(padre, texto, comando, ancho=3, tamano=12, negrita=False,
 class Teclado:
     def __init__(self):
         self.raiz = raiz = tk.Tk()
-        raiz.title("Teclado griego")
+        raiz.title("Teclado Científico")
         self.poner_icono()
         raiz.overrideredirect(True)
         raiz.attributes("-topmost", True)
